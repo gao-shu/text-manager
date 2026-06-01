@@ -43,4 +43,14 @@ jobs:
         with:
           name: TextManager ${{ github.ref_name }}
           files: TextManager-${{ github.ref_name }}-windows-x64.exe
-          generate_release_notes: true
+          generate_release_notes: false
+          body: |
+            ## 下载
+
+            请下载 **`TextManager-${{ github.ref_name }}-windows-x64.exe`**，双击即可运行，无需安装。
+
+            > Source code (zip / tar.gz) 为 GitHub 自动生成的源码归档，普通使用无需下载。
+
+            ## 更新说明
+
+            详见仓库 [README](https://github.com/gao-shu/text-manager#textmanager)。
