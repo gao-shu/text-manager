@@ -32,6 +32,24 @@ npm run tauri:build
 
 > 默认不打包 NSIS 安装程序（避免从 GitHub 下载 NSIS 超时）。若需要安装包：`npm run tauri:build:installer`（需能访问 GitHub）。
 
+## 发布 Release（GitHub Actions）
+
+推送 tag 后自动构建 Windows exe 并创建 Release：
+
+```bash
+# 1. 更新版本号（package.json / tauri.conf.json / Cargo.toml）
+# 2. 提交并推送
+git add .
+git commit -m "chore: bump version to 0.2.0"
+git push
+
+# 3. 打 tag 并推送（触发 Actions）
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+构建完成后到 [Releases](https://github.com/gao-shu/text-manager/releases) 下载 `TextManager-vX.X.X-windows-x64.exe`。
+
 ## 技术栈
 
 - Tauri 2 + React + TypeScript
