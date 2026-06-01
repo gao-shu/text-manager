@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { CategoryDialog } from "./CategoryDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { IconGear } from "./Icons";
+import { SettingsDialog } from "./SettingsDialog";
 
 export function CategoryPanel() {
   const {
@@ -13,11 +15,15 @@ export function CategoryPanel() {
     deleteCategory,
     snippets,
     showToast,
+    appData,
+    replaceData,
+    reloadData,
   } = useApp();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; count: number } | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <aside className="flex w-[200px] shrink-0 flex-col border-r border-gray-200 bg-white">
@@ -80,6 +86,27 @@ export function CategoryPanel() {
           );
         })}
       </ul>
+
+      <div className="border-t border-gray-200 px-3 py-2">
+        <button
+          type="button"
+          title="设置"
+          className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-100"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <IconGear className="h-4 w-4" />
+          设置
+        </button>
+      </div>
+
+      <SettingsDialog
+        open={settingsOpen}
+        data={appData}
+        onClose={() => setSettingsOpen(false)}
+        showToast={showToast}
+        onDataImported={(imported) => replaceData(imported)}
+        onPathChanged={() => void reloadData()}
+      />
 
       <CategoryDialog
         open={createOpen}

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { loadData, nowIso, saveData, writeClipboard } from "../api/data";
+import { titleFromContent } from "../utils/snippet";
 import type { AppData, Category, Snippet, SnippetDraft } from "../types";
 
 interface AppContextValue {
@@ -32,6 +33,9 @@ interface AppContextValue {
   deleteSnippet: (id: string) => void;
   copySnippet: (id: string) => Promise<void>;
   filteredSnippets: Snippet[];
+  appData: AppData;
+  replaceData: (data: AppData) => void;
+  reloadData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -76,7 +80,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const query = searchQuery.trim().toLowerCase();
     return data.snippets
       .filter((s) => s.categoryId === selectedCategoryId)
-      .filter((s) => !query || s.title.toLowerCase().includes(query))
+      .filter((s) => !query || s.content.toLowerCase().includes(query))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }, [data.snippets, searchQuery, selectedCategoryId]);
 
@@ -133,16 +137,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addSnippet = useCallback(
     (draft: SnippetDraft) => {
-      const title = draft.title.trim();
-      if (!title) return "标题不能为空";
+      const content = draft.content;
+      if (!content.trim()) return "内容不能为空";
       if (!selectedCategoryId) return "请先选择分类";
 
       const now = nowIso();
       const snippet: Snippet = {
         id: crypto.randomUUID(),
         categoryId: selectedCategoryId,
-        title,
-        content: draft.content,
+        title: titleFromContent(content),
+        content,
         createdAt: now,
         updatedAt: now,
       };
@@ -154,13 +158,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateSnippet = useCallback(
     (id: string, draft: SnippetDraft) => {
-      const title = draft.title.trim();
-      if (!title) return "标题不能为空";
+      const content = draft.content;
+      if (!content.trim()) return "内容不能为空";
       void persist({
         ...data,
         snippets: data.snippets.map((s) =>
           s.id === id
-            ? { ...s, title, content: draft.content, updatedAt: nowIso() }
+            ? {
+                ...s,
+                title: titleFromContent(content),
+                content,
+                updatedAt: nowIso(),
+              }
             : s,
         ),
       });
@@ -187,6 +196,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [data.snippets, showToast],
   );
 
+  const replaceData = useCallback((next: AppData) => {
+    setData(next);
+    const first = next.categories.sort((a, b) => a.sortOrder - b.sortOrder)[0];
+    setSelectedCategoryId(first?.id ?? null);
+    setHighlightedSnippetId(null);
+    setSearchQuery("");
+  }, []);
+
+  const reloadData = useCallback(async () => {
+    const loaded = await loadData();
+    replaceData(loaded);
+  }, [replaceData]);
+
   const value: AppContextValue = {
     loading,
     categories: [...data.categories].sort((a, b) => a.sortOrder - b.sortOrder),
@@ -209,6 +231,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteSnippet,
     copySnippet,
     filteredSnippets,
+    appData: data,
+    replaceData,
+    reloadData,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

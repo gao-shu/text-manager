@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 import type { Snippet, SnippetDraft } from "../types";
+import { titleFromContent } from "../utils/snippet";
 import { IconClose } from "./Icons";
 
 export interface SnippetDialogHandle {
@@ -21,19 +22,20 @@ interface SnippetDialogProps {
 
 export const SnippetDialog = forwardRef<SnippetDialogHandle, SnippetDialogProps>(
   function SnippetDialog({ open, snippet, onClose, onSave }, ref) {
-    const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
       if (open) {
-        setTitle(snippet?.title ?? "");
         setContent(snippet?.content ?? "");
         setError(null);
       }
     }, [open, snippet]);
 
-    const getDraft = (): SnippetDraft => ({ title, content });
+    const getDraft = (): SnippetDraft => ({
+      title: titleFromContent(content),
+      content,
+    });
 
     const saveDraft = (): string | null => {
       const err = onSave(getDraft(), snippet?.id);
@@ -44,7 +46,7 @@ export const SnippetDialog = forwardRef<SnippetDialogHandle, SnippetDialogProps>
       return null;
     };
 
-    useImperativeHandle(ref, () => ({ getDraft, saveDraft }), [title, content, snippet, onSave]);
+    useImperativeHandle(ref, () => ({ getDraft, saveDraft }), [content, snippet, onSave]);
 
     if (!open) return null;
 
@@ -81,21 +83,15 @@ export const SnippetDialog = forwardRef<SnippetDialogHandle, SnippetDialogProps>
             </button>
           </div>
 
-          <input
-            autoFocus
-            className="mt-3 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setError(null);
-            }}
-            placeholder="标题"
-          />
           <textarea
+            autoFocus
             className="mt-3 min-h-0 flex-1 resize-none rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500"
             value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="正文内容"
+            onChange={(e) => {
+              setContent(e.target.value);
+              setError(null);
+            }}
+            placeholder="输入内容..."
           />
           {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
 

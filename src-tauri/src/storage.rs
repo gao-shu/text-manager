@@ -1,10 +1,17 @@
 use std::path::PathBuf;
 
 use crate::models::AppData;
+use crate::settings::{default_data_path, load_settings};
 
 pub fn get_data_path() -> Result<PathBuf, String> {
-    let app_data = std::env::var("APPDATA").map_err(|e| e.to_string())?;
-    Ok(PathBuf::from(app_data).join("TextManager").join("data.json"))
+    let settings = load_settings()?;
+    if let Some(custom) = settings.data_file_path {
+        let trimmed = custom.trim();
+        if !trimmed.is_empty() {
+            return Ok(PathBuf::from(trimmed));
+        }
+    }
+    default_data_path()
 }
 
 pub fn load_data() -> Result<AppData, String> {
@@ -37,4 +44,11 @@ pub fn write_clipboard(text: &str) -> Result<(), String> {
         .map_err(|e| e.to_string())?
         .set_text(text)
         .map_err(|e| e.to_string())
+}
+
+pub fn validate_app_data(data: &AppData) -> Result<(), String> {
+    if data.categories.is_empty() {
+        return Err("数据至少需要包含一个分类".into());
+    }
+    Ok(())
 }

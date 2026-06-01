@@ -3,6 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { quitApp } from "../api/app";
 import { useApp } from "../context/AppContext";
 import type { Snippet, SnippetDraft } from "../types";
+import { previewContent } from "../utils/snippet";
 import { CategoryPanel } from "./CategoryPanel";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { SnippetDialog, type SnippetDialogHandle } from "./SnippetDialog";
@@ -20,6 +21,7 @@ export function MainLayout() {
     addSnippet,
     updateSnippet,
     deleteSnippet,
+    snippets,
   } = useApp();
 
   const dialogRef = useRef<SnippetDialogHandle>(null);
@@ -54,10 +56,20 @@ export function MainLayout() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (!e.ctrlKey || e.key.toLowerCase() !== "c") return;
-      if (dialogOpen) return;
+      if (dialogOpen || deleteTarget) return;
       const target = e.target as HTMLElement;
       if (target.tagName === "TEXTAREA" || target.tagName === "INPUT") return;
+
+      if (e.key === "Delete") {
+        if (!highlightedSnippetId) return;
+        const snippet = snippets.find((s) => s.id === highlightedSnippetId);
+        if (!snippet) return;
+        e.preventDefault();
+        setDeleteTarget(snippet);
+        return;
+      }
+
+      if (!e.ctrlKey || e.key.toLowerCase() !== "c") return;
       if (!highlightedSnippetId) return;
       e.preventDefault();
       void copySnippet(highlightedSnippetId);
@@ -65,7 +77,7 @@ export function MainLayout() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [copySnippet, dialogOpen, highlightedSnippetId]);
+  }, [copySnippet, dialogOpen, deleteTarget, highlightedSnippetId, snippets]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -116,7 +128,7 @@ export function MainLayout() {
       <ConfirmDialog
         open={!!deleteTarget}
         title="删除片段"
-        message={`确定删除片段「${deleteTarget?.title ?? ""}」？`}
+        message={`确定删除该片段？\n${previewContent(deleteTarget?.content ?? "")}`}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => {
           if (deleteTarget) deleteSnippet(deleteTarget.id);
